@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON LUXE CASINO</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root { --neon: #ff00ff; --gold: #ffd700; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0a001f;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    header {
+      background: rgba(10, 0, 31, 0.98);
+      backdrop-filter: blur(10px);
+      border-bottom: 3px solid var(--neon);
+      padding: 12px 15px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { font-size: 1.65em; font-weight: bold; color: var(--neon); text-shadow: 0 0 12px var(--neon); }
+
+    .balance-bar {
+      background: rgba(0, 255, 100, 0.15);
+      padding: 10px 15px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 1.35em;
+      border: 1px solid #00ff88;
+    }
+
+    .main-container { display: flex; flex-direction: column; min-height: calc(100vh - 68px); }
+    .sidebar {
+      background: rgba(26, 0, 51, 0.95);
+      padding: 10px;
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      border-bottom: 1px solid #440066;
+    }
+    .nav-btn {
+      padding: 12px 18px;
+      background: transparent;
+      border: 1px solid #660099;
+      color: #ccc;
+      border-radius: 12px;
+      white-space: nowrap;
+      font-size: 1.05em;
+      min-width: 110px;
+      text-align: center;
+    }
+    .nav-btn.active {
+      background: var(--neon);
+      color: white;
+      border-color: var(--neon);
+      box-shadow: 0 0 15px var(--neon);
+    }
+
+    .content { flex: 1; padding: 15px; overflow-y: auto; }
+    .glass {
+      background: rgba(26, 0, 51, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,0,255,0.3);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    button {
+      background: var(--neon);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      max-width: 340px;
+    }
+    button:active { transform: scale(0.96); }
+
+    input[type="number"], input[type="text"] {
+      padding: 14px;
+      font-size: 1.1em;
+      border-radius: 10px;
+      background: #2a0044;
+      color: white;
+      border: none;
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .promo-banner {
+      background: linear-gradient(90deg, #ffd700, #ff8800);
+      color: #000;
+      padding: 14px;
+      text-align: center;
+      font-weight: bold;
+      border-radius: 12px;
+      margin: 15px 0;
+      box-shadow: 0 0 15px #ffd700;
+    }
+
+    .crash-chart-container { height: 260px; margin: 20px 0; }
+    .game-screen { display: none; }
+    .game-screen.active { display: block; }
+
+    @media (min-width: 768px) {
+      .main-container { flex-direction: row; }
+      .sidebar { flex-direction: column; width: 240px; overflow-x: hidden; border-right: 1px solid #440066; border-bottom: none; }
+      .nav-btn { width: 100%; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display:flex; justify-content:space-between; align-items:center; max-width:1100px; margin:auto;">
+      <div class="logo">NEON LUXE CASINO</div>
+      <div class="balance-bar">
+        Balance: $<span id="balance">10000</span> — <span id="currentUser"></span>
+        <button onclick="logout()" style="background:#ff4444; padding:8px 14px; font-size:0.9em; margin-left:12px;">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <div class="sidebar" id="navContainer"></div>
+
+    <div class="content">
+      <!-- Promo -->
+      <div style="max-width:700px; margin:auto;">
+        <input type="text" id="promoCode" placeholder="Promo Code (NEON5X)" style="max-width:220px; display:inline-block;">
+        <button onclick="redeemPromo()" style="width:auto; padding:14px 20px;">Activate</button>
+        <div id="promoBanner" class="promo-banner" style="display:none;">🔥 5X LUCK ACTIVATED 🔥</div>
+      </div>
+
+      <!-- Slots -->
+      <div id="game0" class="game-screen active">
+        <h2 class="glass" style="text-align:center;">🎰 Classic Slots</h2>
+        <div id="reels" style="text-align:center; font-size:4.8em; margin:25px 0; line-height:1.2;">🍒 🍒 🍒</div>
+        <div style="text-align:center;">
+          <input type="number" id="betSlots" value="100" min="10"><br><br>
+          <button onclick="spinSlots()">SPIN NOW</button>
+        </div>
+        <div id="slotsResult" style="text-align:center; margin-top:20px; font-size:1.6em; min-height:70px;"></div>
+      </div>
+
+      <!-- Crash Rocket -->
+      <div id="game4" class="game-screen">
+        <h2 class="glass" style="text-align:center;">🚀 CRASH ROCKET</h2>
+        <div class="glass">
+          <div class="crash-chart-container">
+            <canvas id="crashChart"></canvas>
+          </div>
+          <div id="liveMultiplier" style="text-align:center; font-size:2.8em; font-weight:bold; margin:10px 0; color:#00ff88;">1.00x</div>
+        </div>
+
+        <div style="text-align:center; margin-top:15px;">
+          <input type="number" id="betCrash" value="100" min="10"><br><br>
+          <button id="betBtn" onclick="startCrash()">LAUNCH ROCKET</button>
+          <button id="cashoutBtn" onclick="cashOut()" style="display:none; background:#00cc66;">CASH OUT NOW</button>
+        </div>
+        <div id="crashResult" style="text-align:center; margin-top:20px; font-size:1.5em; min-height:80px;"></div>
+      </div>
+
+      <!-- Placeholder games -->
+      <div id="game1" class="game-screen"><h2 class="glass" style="text-align:center;">🃏 Blackjack</h2><p style="text-align:center;padding:40px;">Full game coming soon...</p></div>
+      <div id="game2" class="game-screen"><h2 class="glass" style="text-align:center;">🎡 Roulette</h2><p style="text-align:center;padding:40px;">Full game coming soon...</p></div>
+      <div id="game3" class="game-screen"><h2 class="glass" style="text-align:center;">🪙 Coin Flip</h2><p style="text-align:center;padding:40px;">Full game coming soon...</p></div>
+    </div>
+  </div>
+
+  <script>
+    let balance = 10000;
+    let currentUser = "";
+    let isFiveX = false;
+    let chart = null;
+    let crashInterval = null;
+    let multipliers = [], times = [];
+    let currentBet = 0, currentMultiplier = 1, crashed = false;
+
+    const symbols = ['🍒','🍋','🍊','⭐','💎','7️⃣'];
+
+    function createNav() {
+      const nav = document.getElementById('navContainer');
+      const gameNames = ["🎰 Slots", "🃏 Blackjack", "🎡 Roulette", "🪙 Coin", "🚀 Crash"];
+      gameNames.forEach((name, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'nav-btn';
+        btn.textContent = name;
+        btn.onclick = () => switchGame(i);
+        if (i === 0) btn.classList.add('active');
+        nav.appendChild(btn);
+      });
+    }
+
+    function saveData() {
+      if (currentUser) {
+        localStorage.setItem("casino_" + currentUser, JSON.stringify({balance, isFiveX}));
+      }
+    }
+
+    function loadData(user) {
+      const data = localStorage.getItem("casino_" + user);
+      if (data) {
+        const parsed = JSON.parse(data);
+        balance = parsed.balance || 10000;
+        isFiveX = parsed.isFiveX || false;
+      }
+      updateBalance();
+    }
+
+    function updateBalance() {
+      document.getElementById('balance').textContent = balance.toLocaleString();
+      document.getElementById('promoBanner').style.display = isFiveX ? 'block' : 'none';
+    }
+
+    function login() {
+      const name = prompt("Enter your username:", "Player1") || "Guest";
+      currentUser = name;
+      document.getElementById('currentUser').textContent = name;
+      loadData(name);
+    }
+
+    function logout() {
+      saveData();
+      location.reload();
+    }
+
+    function redeemPromo() {
+      const code = document.getElementById('promoCode').value.trim().toUpperCase();
+      if (code === "NEON5X" || code === "5X") {
+        isFiveX = true;
+        updateBalance();
+        saveData();
+        alert("🎉 5X LUCK ACTIVATED! Games are now much more rewarding.");
+      } else {
+        alert("Invalid promo code. Try NEON5X");
+      }
+    }
+
+    function switchGame(n) {
+      document.querySelectorAll('.game-screen').forEach(g => g.classList.remove('active'));
+      document.getElementById(`game${n}`).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', i === n));
+    }
+
+    // Slots Game
+    function spinSlots() {
+      const bet = parseInt(document.getElementById('betSlots').value) || 100;
+      if (bet > balance || bet < 10) return alert("Invalid bet amount!");
+      
+      balance -= bet;
+      updateBalance();
+
+      const r = Array(3).fill().map(() => symbols[Math.floor(Math.random() * symbols.length)]);
+      document.getElementById('reels').innerHTML = r.join('  ');
+
+      let win = 0;
+      if (r[0] === r[1] && r[1] === r[2]) {
+        win = (r[0] === '7️⃣' ? 120 : 35) * bet;
+      } else if (r[0] === r[1] || r[1] === r[2]) {
+        win = isFiveX ? bet * 10 : bet * 3;
+      }
+
+      balance += win;
+      updateBalance();
+      document.getElementById('slotsResult').innerHTML = win ? `🎉 BIG WIN! +$${win}` : `No win this time`;
+      saveData();
+    }
+
+    // Crash Rocket with Realistic Chart
+    function initCrashChart() {
+      if (chart) chart.destroy();
+      const ctx = document.getElementById('crashChart');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: times,
+          datasets: [{
+            label: 'Multiplier',
+            data: multipliers,
+            borderColor: '#00ffcc',
+            borderWidth: 3.5,
+            tension: 0.4,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          animation: { duration: 100 },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { title: { display: true, text: 'Time (s)' } },
+            y: { beginAtZero: true, title: { display: true, text: 'Multiplier' } }
+          }
+        }
+      });
+    }
+
+    function startCrash() {
+      const bet = parseInt(document.getElementById('betCrash').value) || 100;
+      if (bet > balance || bet < 10) return alert("Invalid bet!");
+
+      balance -= bet;
+      updateBalance();
+
+      currentBet = bet;
+      currentMultiplier = 1.0;
+      multipliers = [1];
+      times = [0];
+      crashed = false;
+
+      document.getElementById('betBtn').style.display = 'none';
+      document.getElementById('cashoutBtn').style.display = 'inline-block';
+      document.getElementById('crashResult').innerHTML = '';
+
+      if (!chart) initCrashChart();
+
+      let time = 0;
+      crashInterval = setInterval(() => {
+        time += 0.15;
+        currentMultiplier += (Math.random() * 0.25) + (isFiveX ? 0.18 : 0.09);
+
+        multipliers.push(currentMultiplier);
+        times.push(time.toFixed(1));
+        chart.update();
+
+        document.getElementById('liveMultiplier').textContent = currentMultiplier.toFixed(2) + 'x';
+
+        if (currentMultiplier > 2 && Math.random() < (isFiveX ? 0.009 : 0.025)) {
+          crash();
+        }
+      }, 85);
+    }
+
+    function cashOut() {
+      if (crashed || !crashInterval) return;
+      clearInterval(crashInterval);
+      const win = Math.floor(currentBet * currentMultiplier * (isFiveX ? 1.6 : 1));
+      balance += win;
+      updateBalance();
+      document.getElementById('crashResult').innerHTML = `✅ CASHED OUT @ <strong>${currentMultiplier.toFixed(2)}x</strong><br>+$${win}`;
+      resetCrash();
+      saveData();
+    }
+
+    function crash() {
+      crashed = true;
+      clearInterval(crashInterval);
+      document.getElementById('liveMultiplier').innerHTML = `<span style="color:#ff3366;">💥 CRASHED @ ${currentMultiplier.toFixed(2)}x</span>`;
+      document.getElementById('crashResult').innerHTML = "Rocket crashed. Bet lost.";
+      resetCrash();
+    }
+
+    function resetCrash() {
+      document.getElementById('betBtn').style.display = 'inline-block';
+      document.getElementById('cashoutBtn').style.display = 'none';
+      setTimeout(() => {
+        multipliers = [1];
+        times = [0];
+        if (chart) chart.update();
+        document.getElementById('liveMultiplier').textContent = '1.00x';
+      }, 2800);
+    }
+
+    // Initialize everything
+    window.onload = () => {
+      createNav();
+      login();
+      // Preload slots
+      document.getElementById('reels').innerHTML = '🍒 🍒 🍒';
+    };
+  </script>
+</body>
+</html>
